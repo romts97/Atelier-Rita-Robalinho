@@ -1092,10 +1092,6 @@ function importData(e){
 function showToast(){ const t=document.getElementById("toast"); t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2000); }
 function renderAll(){ renderDashboard(); renderClientes(); renderProducao(); renderFinanceiro(); }
 
-  insert into public.profiles (id, name, role) values
-  ('29ad75ea-5a86-4f3a-94aa-1d03360dd315',     'Rita Robalinho',  'rita'),
-  ('6693bca8-86f6-41ff-8f38-dae5bc936b52',  'Ricardo',         'ricardo'),
-  ('487429bb-dcf5-4be5-91db-1d1cd94dc480', 'Marketer',        'marketing');
 
 // Iniciar
 initAuth();
