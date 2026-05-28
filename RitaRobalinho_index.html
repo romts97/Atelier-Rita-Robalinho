@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier Rita Robalinho</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rosa:#C4748A;--rosa-cl:#F0D0D8;--rosa-bg:#FBF0F3;
+  --dourado:#B8972E;--dou-cl:#F5E9C0;
+  --bg:#FAF8F6;--border:#E8E0DC;--text:#2C2218;--muted:#8A7B72;
+  --azul-cl:#DDEEFF;--azul:#1565C0;
+  --lilas-cl:#F3E5F5;--lilas:#6A1B9A;
+  --verde-cl:#E8F5E9;--verde:#2E7D32;
+  --amb-cl:#FFF8E1;--amb:#E65100;
+  --coral-cl:#FBE9E7;--coral:#BF360C;
+  --gray-cl:#F5F5F5;--gray:#616161;
+  --sidebar:#2C1A12;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"DM Sans",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+
+/* Sidebar */
+.sidebar{background:var(--sidebar);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-logo{padding:1.75rem 1.5rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo h1{font-family:"Cormorant Garamond",serif;font-size:19px;font-weight:400;color:#F0D0D8;line-height:1.3}
+.sidebar-logo p{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
+.sidebar-section{padding:.75rem 1.5rem .25rem;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.08em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 1.5rem;font-size:13px;color:rgba(255,255,255,.45);cursor:pointer;border:none;background:none;width:100%;text-align:left;border-left:2px solid transparent;transition:all .15s}
+.nav-item:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.04)}
+.nav-item.active{color:#F0D0D8;border-left-color:var(--rosa);background:rgba(196,116,138,.1)}
+.nav-item svg{flex-shrink:0;opacity:.6}.nav-item.active svg{opacity:1}
+.sidebar-footer{margin-top:auto;padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,.06)}
+.sidebar-user{font-size:12px;color:rgba(255,255,255,.4);margin-bottom:10px}
+.sidebar-user strong{color:rgba(255,255,255,.65);display:block;font-size:13px}
+.sidebar-btn{display:block;width:100%;background:none;border:1px solid rgba(255,255,255,.12);border-radius:5px;color:rgba(255,255,255,.4);font-size:11px;padding:6px 8px;cursor:pointer;font-family:inherit;text-align:left;margin-bottom:5px;transition:all .15s}
+.sidebar-btn:hover{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.65)}
+
+/* Main */
+.main{overflow-y:auto}
+.page{display:none;padding:2rem 2.5rem}.page.active{display:block}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:12px}
+.page-title{font-family:"Cormorant Garamond",serif;font-size:30px;font-weight:300}
+.page-subtitle{font-size:13px;color:var(--muted);margin-top:2px}
+
+/* Botões */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;font-family:"DM Sans",sans-serif}
+.btn-primary{background:var(--rosa);color:white}.btn-primary:hover{background:#B5667A}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{background:var(--rosa-bg)}
+.btn-danger{background:none;border:1px solid #FFCDD2;color:#C62828}.btn-danger:hover{background:#FFEBEE}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+/* Métricas */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.75rem}
+.metric{background:white;border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.metric-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.metric-value{font-family:"Cormorant Garamond",serif;font-size:34px;font-weight:300;line-height:1}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.mv-danger{color:#C62828}.mv-ok{color:#2E7D32}.mv-warn{color:#E65100}.mv-gold{color:var(--dourado)}
+
+/* Alertas */
+.alerts{display:flex;flex-direction:column;gap:7px;margin-bottom:1.75rem}
+.alert{display:flex;align-items:flex-start;gap:9px;padding:10px 13px;border-radius:8px;font-size:13px;line-height:1.5;border:1px solid}
+.al-danger{background:#FFF5F5;border-color:#FFCDD2;color:#C62828}
+.al-warn{background:#FFF8EE;border-color:#FFE0B2;color:#BF360C}
+.al-ok{background:#F1F8E9;border-color:#DCEDC8;color:#33691E}
+.al-info{background:#E3F2FD;border-color:#BBDEFB;color:#0D47A1}
+
+/* Tabelas */
+.card{background:white;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:1.25rem}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:#FDFCFB}
+.card-title{font-size:13px;font-weight:500}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;font-weight:500;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:#FDFCFB}
+td{padding:11px 14px;border-bottom:1px solid #F5F0EC;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FDFAF8}
+.td-name{font-weight:500}
+.td-muted{color:var(--muted);font-size:12px}
+.row-actions{display:flex;gap:3px;opacity:0;transition:opacity .15s}
+tr:hover .row-actions{opacity:1}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;border-radius:4px;display:flex;align-items:center}
+.icon-btn:hover{color:var(--text);background:var(--rosa-bg)}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.b-blue{background:var(--azul-cl);color:var(--azul)}
+.b-purple{background:var(--lilas-cl);color:var(--lilas)}
+.b-amber{background:var(--amb-cl);color:var(--amb)}
+.b-coral{background:var(--coral-cl);color:var(--coral)}
+.b-green{background:var(--verde-cl);color:var(--verde)}
+.b-gray{background:var(--gray-cl);color:var(--gray)}
+.b-rosa{background:var(--rosa-bg);color:var(--rosa)}
+.b-gold{background:var(--dou-cl);color:var(--dourado)}
+
+/* Pipeline Kanban */
+.kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:1.5rem}
+.kanban-col{background:var(--gray-cl);border-radius:8px;padding:10px}
+.kanban-col-title{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.kanban-count{background:white;border-radius:10px;padding:1px 7px;font-size:11px;color:var(--text)}
+.kanban-card{background:white;border:1px solid var(--border);border-radius:7px;padding:10px;margin-bottom:7px;cursor:pointer;transition:all .15s}
+.kanban-card:hover{border-color:var(--rosa);box-shadow:0 2px 8px rgba(196,116,138,.15)}
+.kanban-card-name{font-size:13px;font-weight:500;margin-bottom:4px}
+.kanban-card-meta{font-size:11px;color:var(--muted)}
+.kanban-card-source{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 7px;border-radius:10px;background:var(--rosa-bg);color:var(--rosa);margin-top:5px}
+
+/* Calendário */
+.cal-month-nav{display:flex;align-items:center;gap:12px}
+.cal-month-nav span{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:300;min-width:170px;text-align:center}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:.75rem}
+.cal-day-hdr{background:var(--sidebar);color:rgba(255,255,255,.5);text-align:center;padding:8px 4px;font-size:11px;font-weight:500;letter-spacing:.04em}
+.cal-day{background:white;min-height:88px;padding:6px}
+.cal-day.other-month{background:#FDFCFB}
+.cal-day.today{background:var(--rosa-bg)}
+.cal-day-num{font-size:12px;font-weight:500;color:var(--muted);margin-bottom:3px}
+.cal-day.today .cal-day-num{color:var(--rosa);font-weight:700}
+.cal-event{border-radius:3px;padding:2px 5px;font-size:10px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ce-design{background:var(--azul-cl);color:var(--azul)}
+.ce-prod{background:var(--amb-cl);color:var(--amb)}
+.ce-wed{background:var(--verde-cl);color:var(--verde)}
+.ce-entrega{background:var(--rosa-bg);color:var(--rosa)}
+.cal-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:6px 0}
+.cal-legend-item{display:flex;align-items:center;gap:5px}
+.cal-legend-dot{width:10px;height:10px;border-radius:2px}
+
+/* Financeiro */
+.fin-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:1.5rem}
+.fin-card{background:white;border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.fin-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.fin-value{font-family:"Cormorant Garamond",serif;font-size:28px;font-weight:300}
+.fin-value.income{color:var(--verde)}
+.fin-value.expense{color:var(--coral)}
+.fin-value.profit{color:var(--dourado)}
+.progress-bar{height:6px;background:var(--gray-cl);border-radius:3px;margin-top:8px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:var(--rosa);transition:width .3s}
+
+/* Marketing */
+.mkt-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem}
+.mkt-card{background:white;border:1px solid var(--border);border-radius:10px;padding:1.25rem}
+.mkt-card h3{font-size:13px;font-weight:500;margin-bottom:12px;color:var(--text)}
+.channel-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:13px}
+.channel-bar-wrap{flex:1;height:8px;background:var(--gray-cl);border-radius:4px;overflow:hidden}
+.channel-bar{height:100%;border-radius:4px;transition:width .4s}
+.channel-val{font-size:12px;font-weight:500;min-width:32px;text-align:right;color:var(--text)}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(44,26,18,.4);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(2px)}
+.modal{background:white;border-radius:14px;padding:2rem;width:480px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(44,26,18,.2)}
+.modal-title{font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:300;margin-bottom:1.5rem}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select,.field textarea{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:"DM Sans",sans-serif;background:white;color:var(--text);outline:none;transition:border .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--rosa)}
+.field textarea{min-height:60px;resize:vertical}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border)}
+.block-blue{background:#EEF4FF;border-radius:8px;padding:13px;margin-bottom:9px;border:1px solid #BBDEFB}
+.block-purple{background:#F5EEFF;border-radius:8px;padding:13px;margin-bottom:9px;border:1px solid #E1BEE7}
+.block-title{font-size:12px;font-weight:500;margin-bottom:9px}
+.block-blue .block-title{color:var(--azul)}
+.block-purple .block-title{color:var(--lilas)}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
+.tab{padding:8px 14px;font-size:13px;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;font-family:"DM Sans",sans-serif}
+.tab.active{color:var(--text);font-weight:500;border-bottom-color:var(--rosa)}
+
+/* Info bar */
+.info-bar{background:var(--rosa-bg);border:1px solid var(--rosa-cl);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px;margin-top:.75rem}
+.add-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:11px;border:1px dashed var(--border);background:none;border-radius:8px;color:var(--muted);font-size:13px;cursor:pointer;transition:all .15s;font-family:"DM Sans",sans-serif}
+.add-btn:hover{border-color:var(--rosa);color:var(--rosa);background:var(--rosa-bg)}
+.section-label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--sidebar);color:white;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300}
+.toast.show{opacity:1}
+
+/* ── Login */
+.login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#2C1A12 0%,#4A2C1A 100%);display:flex;align-items:center;justify-content:center;z-index:999}
+.login-box{background:white;border-radius:16px;padding:2.5rem;width:360px;max-width:95vw;box-shadow:0 32px 80px rgba(0,0,0,.4)}
+.login-logo{font-family:"Cormorant Garamond",serif;font-size:26px;font-weight:300;color:var(--text);text-align:center;margin-bottom:4px}
+.login-sub{font-size:12px;color:var(--muted);text-align:center;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2rem}
+.login-error{background:#FFF5F5;border:1px solid #FFCDD2;color:#C62828;border-radius:6px;padding:9px 12px;font-size:13px;margin-bottom:12px;display:none}
+.login-btn{width:100%;background:var(--rosa);color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:"DM Sans",sans-serif;margin-top:4px;transition:background .15s}
+.login-btn:hover{background:#B5667A}
+.login-btn:disabled{opacity:.6;cursor:not-allowed}
+
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:13px}
+.empty-state svg{margin-bottom:12px;opacity:.3}
+@media(max-width:720px){
+  .app{grid-template-columns:1fr}
+  .sidebar{height:auto;position:static}
+  .kanban{grid-template-columns:1fr 1fr}
+  .mkt-grid{grid-template-columns:1fr}
+  .page{padding:1.25rem}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Rita Robalinho</div>
+    <div class="login-sub">Atelier de Casamentos</div>
+    <div class="login-error" id="login-error"></div>
+    <div class="field"><label>Email</label><input type="email" id="l-email" placeholder="email@exemplo.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="field"><label>Password</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<div class="app" id="main-app" style="display:none">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>Rita Robalinho</h1>
+    <p>Atelier de Casamentos</p>
+  </div>
+  <nav style="flex:1">
+    <div class="sidebar-section">Principal</div>
+    <button class="nav-item active" onclick="setPage('dashboard')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </button>
+    <div class="sidebar-section">Negócio</div>
+    <button class="nav-item" onclick="setPage('clientes')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Clientes & Pipeline
+    </button>
+    <button class="nav-item" onclick="setPage('producao')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      Produção
+    </button>
+    <button class="nav-item" onclick="setPage('calendario')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Calendário
+    </button>
+    <button class="nav-item" onclick="setPage('financeiro')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Financeiro
+    </button>
+    <button class="nav-item" onclick="setPage('marketing')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Marketing & Leads
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-user">A trabalhar como<strong id="perfil-nome">Rita Robalinho</strong></div>
+    <button onclick="doLogout()" class="sidebar-btn" style="border-color:rgba(196,116,138,.3);color:rgba(240,208,216,.6)">⎋ Sair</button>
+    <button onclick="exportData()" class="sidebar-btn">⬇ Exportar backup</button>
+    <label class="sidebar-btn">⬆ Importar backup<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <div><div class="page-title">Dashboard</div><div class="page-subtitle" id="dash-date"></div></div>
+    <button class="btn btn-primary" onclick="setPage('clientes');setTimeout(()=>openNewLead(),100)">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Novo lead
+    </button>
+  </div>
+  <div class="metrics" id="dash-metrics"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+    <div>
+      <div class="section-label">Alertas de produção</div>
+      <div id="dash-alerts"></div>
+    </div>
+    <div>
+      <div class="section-label">Próximos casamentos</div>
+      <div class="card"><table><thead><tr><th>Noivos</th><th>Data</th><th>Dias</th></tr></thead><tbody id="dash-proximos"></tbody></table></div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:1.25rem">
+    <div>
+      <div class="section-label">Pipeline de leads</div>
+      <div class="card"><table><thead><tr><th>Nome</th><th>Estado</th><th>Canal</th></tr></thead><tbody id="dash-leads"></tbody></table></div>
+    </div>
+    <div>
+      <div class="section-label">Resumo financeiro do mês</div>
+      <div id="dash-fin"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENTES & PIPELINE -->
+<div class="page" id="page-clientes">
+  <div class="page-header">
+    <div><div class="page-title">Clientes & Pipeline</div><div class="page-subtitle">Gestão de leads e clientes</div></div>
+    <button class="btn btn-primary" onclick="openNewLead()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Novo lead
+    </button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="setCliTab('pipeline',this)">Pipeline</button>
+    <button class="tab" onclick="setCliTab('lista',this)">Lista completa</button>
+  </div>
+  <div id="cli-pipeline">
+    <div class="kanban" id="kanban-board"></div>
+  </div>
+  <div id="cli-lista" style="display:none">
+    <div class="card"><table><thead><tr><th>Nome</th><th>Data casamento</th><th>Tipo</th><th>Canal</th><th>Estado</th><th>Orçamento</th><th></th></tr></thead><tbody id="tbody-clientes"></tbody></table></div>
+  </div>
+</div>
+
+<!-- PRODUÇÃO -->
+<div class="page" id="page-producao">
+  <div class="page-header">
+    <div><div class="page-title">Produção</div><div class="page-subtitle">Casamentos em curso e prazos</div></div>
+    <button class="btn btn-primary" onclick="openNewWedding()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Novo casamento
+    </button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="setProdTab('ativos',this)">Ativos</button>
+    <button class="tab" onclick="setProdTab('prazos',this)">Prazos</button>
+  </div>
+  <div id="prod-ativos">
+    <div class="card"><table><thead><tr><th>Noivos</th><th>Casamento</th><th>Tipo</th><th>Fase</th><th>Estado</th><th>Próx. prazo</th><th></th></tr></thead><tbody id="tbody-prod"></tbody></table></div>
+    <button class="add-btn" onclick="openNewWedding()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Adicionar casamento</button>
+  </div>
+  <div id="prod-prazos" style="display:none">
+    <div class="card"><table><thead><tr><th>Noivos</th><th>Casamento</th><th>Início design</th><th>Enviar produção</th><th>Fase</th><th>Dias</th></tr></thead><tbody id="tbody-prazos"></tbody></table></div>
+    <div class="info-bar"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><strong>Início design</strong> = 3 meses antes &nbsp;·&nbsp; <strong>Enviar produção</strong> = 3 semanas antes</div>
+  </div>
+</div>
+
+<!-- CALENDÁRIO -->
+<div class="page" id="page-calendario">
+  <div class="page-header">
+    <div><div class="page-title">Calendário</div><div class="page-subtitle">Vista mensal de produção e entregas</div></div>
+    <div class="cal-month-nav">
+      <button class="btn btn-outline" onclick="calPrev()">&#8592;</button>
+      <span id="cal-month-label"></span>
+      <button class="btn btn-outline" onclick="calNext()">&#8594;</button>
+    </div>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="cal-legend">
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--azul-cl);border:1px solid var(--azul)"></div>Início design</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--amb-cl);border:1px solid var(--amb)"></div>Enviar produção</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--verde-cl);border:1px solid var(--verde)"></div>Casamento</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--rosa-bg);border:1px solid var(--rosa)"></div>Entrega</div>
+  </div>
+</div>
+
+<!-- FINANCEIRO -->
+<div class="page" id="page-financeiro">
+  <div class="page-header">
+    <div><div class="page-title">Financeiro</div><div class="page-subtitle">Receitas, custos e margens</div></div>
+    <button class="btn btn-primary" onclick="openNewDespesa()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Registar despesa
+    </button>
+  </div>
+  <div class="fin-summary" id="fin-summary"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+    <div>
+      <div class="section-label">Receitas por casamento</div>
+      <div class="card"><table><thead><tr><th>Noivos</th><th>Orçamento</th><th>25% Adjudicação</th><th>50% Criativo</th><th>25% Entrega</th><th>Saldo</th></tr></thead><tbody id="tbody-receitas"></tbody></table></div>
+    </div>
+    <div>
+      <div class="section-label">Despesas de produção</div>
+      <div class="card"><table><thead><tr><th>Descrição</th><th>Casamento</th><th>Valor</th><th>Data</th><th></th></tr></thead><tbody id="tbody-despesas"></tbody></table></div>
+      <button class="add-btn" onclick="openNewDespesa()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registar despesa</button>
+    </div>
+  </div>
+</div>
+
+<!-- MARKETING -->
+<div class="page" id="page-marketing">
+  <div class="page-header">
+    <div><div class="page-title">Marketing & Leads</div><div class="page-subtitle">Análise de canais e conversões</div></div>
+  </div>
+  <div class="metrics" id="mkt-metrics"></div>
+  <div class="mkt-grid">
+    <div class="mkt-card">
+      <h3>Leads por canal</h3>
+      <div id="mkt-by-channel"></div>
+    </div>
+    <div class="mkt-card">
+      <h3>Taxa de conversão por canal</h3>
+      <div id="mkt-conversion"></div>
+    </div>
+  </div>
+  <div class="section-label">Todos os leads</div>
+  <div class="card"><table><thead><tr><th>Nome</th><th>Canal</th><th>Data contacto</th><th>Estado</th><th>Orçamento</th><th>Notas</th></tr></thead><tbody id="tbody-mkt-leads"></tbody></table></div>
+</div>
+
+</main>
+</div>
+
+<!-- MODAIS -->
+<div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal()">
+<div class="modal" id="modal-content"></div>
+</div>
+<div class="toast" id="toast">Guardado ✓</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DADOS & ESTADO
+// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// CONFIG SUPABASE — substitui pelos teus valores
+// ═══════════════════════════════════════════════════
+const SUPABASE_URL  = 'YOUR_SUPABASE_URL';
+const SUPABASE_KEY  = 'YOUR_SUPABASE_ANON_KEY';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let currentRole = null;
+
+// ── Auth
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  const btn   = document.getElementById('login-btn');
+  const err   = document.getElementById('login-error');
+  err.style.display='none'; btn.disabled=true; btn.textContent='A entrar...';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    err.textContent = 'Email ou password incorretos.';
+    err.style.display='block'; btn.disabled=false; btn.textContent='Entrar';
+  }
+}
+async function doLogout() { await sb.auth.signOut(); location.reload(); }
+
+async function initAuth() {
+  const { data:{ session } } = await sb.auth.getSession();
+  if (session) { currentUser = session.user; await startApp(); }
+  else { document.getElementById('login-screen').style.display='flex'; }
+  sb.auth.onAuthStateChange(async (_,session) => {
+    if (session && !currentUser) { currentUser = session.user; await startApp(); }
+  });
+}
+
+async function startApp() {
+  const { data:prof } = await sb.from('profiles').select('name,role').eq('id', currentUser.id).single();
+  if (prof) {
+    currentRole = prof.role;
+    document.getElementById('perfil-nome').textContent = prof.name;
+  }
+  applyRoleUI();
+  await loadAll();
+  renderAll();
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('main-app').style.display='grid';
+}
+
+function applyRoleUI() {
+  // Esconder módulos conforme o role
+  const navItems = document.querySelectorAll('.nav-item');
+  // indices: 0=dashboard,1=clientes,2=producao,3=calendario,4=financeiro,5=marketing
+  if (currentRole === 'marketing') {
+    [0,1,2,3,4].forEach(i => { if(navItems[i]) navItems[i].style.display='none'; });
+    setPage('marketing');
+  } else if (currentRole === 'ricardo') {
+    [5].forEach(i => { if(navItems[i]) navItems[i].style.display='none'; });
+  }
+}
+
+// ── Conversão DB <-> JS
+function casFromDb(r){ return { id:r.id, nome:r.nome, data:r.data, local:r.local||'', tipo:r.tipo, faseConv:r.fase_conv||'', faseEstat:r.fase_estat||'', entregaConv:r.entrega_conv||'', entregaEstat:r.entrega_estat||'', orcamento:r.orcamento||0, p1Estado:r.p1_estado||'Por pagar', p2Estado:r.p2_estado||'Por pagar', p3Estado:r.p3_estado||'Por pagar', recebido:r.recebido||0, notas:r.notas||'', leadId:r.lead_id }; }
+function casToDb(w){ return { nome:w.nome, data:w.data||null, local:w.local||null, tipo:w.tipo, fase_conv:w.faseConv||null, fase_estat:w.faseEstat||null, entrega_conv:w.entregaConv||null, entrega_estat:w.entregaEstat||null, orcamento:w.orcamento||0, p1_estado:w.p1Estado, p2_estado:w.p2Estado, p3_estado:w.p3Estado, recebido:w.recebido||0, notas:w.notas||null, lead_id:w.leadId||null }; }
+function leadFromDb(r){ return { id:r.id, nome:r.nome, canal:r.canal||'', estado:r.estado||'Contacto inicial', data:r.data||'', orcamento:r.orcamento||0, notas:r.notas||'' }; }
+function leadToDb(l){ return { nome:l.nome, canal:l.canal||null, estado:l.estado||'Contacto inicial', data:l.data||null, orcamento:l.orcamento||0, notas:l.notas||null }; }
+function despFromDb(r){ return { id:r.id, descricao:r.descricao, casamentoId:r.casamento_id, valor:r.valor||0, data:r.data||'' }; }
+
+// ── Load data from Supabase
+async function loadAll() {
+  const [casRes, leadRes, despRes] = await Promise.all([
+    sb.from('casamentos').select('*').order('data'),
+    sb.from('leads').select('*').order('created_at'),
+    currentRole !== 'marketing' ? sb.from('despesas').select('*').order('data') : Promise.resolve({data:[]})
+  ]);
+  db.casamentos = (casRes.data||[]).map(casFromDb);
+  db.leads      = (leadRes.data||[]).map(leadFromDb);
+  db.despesas   = (despRes.data||[]).map(despFromDb);
+}
+
+// ── CRUD casamentos
+async function sbSaveWedding(obj) {
+  const payload = casToDb(obj);
+  if (obj.id && typeof obj.id === 'number' && obj.id < 1e12) {
+    await sb.from('casamentos').update(payload).eq('id', obj.id);
+  } else {
+    const { data } = await sb.from('casamentos').insert(payload).select().single();
+    if (data) obj.id = data.id;
+  }
+}
+async function sbDeleteWedding(id) { await sb.from('casamentos').delete().eq('id', id); }
+
+// ── CRUD leads
+async function sbSaveLead(obj) {
+  const payload = leadToDb(obj);
+  if (obj.id && typeof obj.id === 'number' && obj.id < 1e12) {
+    await sb.from('leads').update(payload).eq('id', obj.id);
+  } else {
+    const { data } = await sb.from('leads').insert(payload).select().single();
+    if (data) obj.id = data.id;
+  }
+}
+async function sbDeleteLead(id) { await sb.from('leads').delete().eq('id', id); }
+
+// ── CRUD despesas
+async function sbSaveDespesa(obj) {
+  const { data } = await sb.from('despesas').insert({ descricao:obj.descricao, casamento_id:obj.casamentoId||null, valor:obj.valor, data:obj.data||null }).select().single();
+  if (data) obj.id = data.id;
+}
+async function sbDeleteDespesa(id) { await sb.from('despesas').delete().eq('id', id); }
+
+const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const FASES = ["Criação","Aprovação","Produção","Entrega","Concluído"];
+const TIPOS = ["Convites","Estacionário","Estacionário e Convites"];
+const ESTADOS_LEAD = ["Contacto inicial","Proposta enviada","Negócio fechado","Em produção","Entregue","Perdido"];
+const CANAIS = ["Instagram/Facebook Ads","Google Ads","Feira/Evento","Referência","Outro"];
+const ESTADO_CORES = {"Contacto inicial":"b-gray","Proposta enviada":"b-amber","Negócio fechado":"b-green","Em produção":"b-blue","Entregue":"b-gold","Perdido":"b-coral"};
+
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let currentModal = null;
+let editingId = null;
+let activeProdTab = "ativos";
+let activeCliTab = "pipeline";
+
+const DEFAULT_DATA = {
+  casamentos:[
+    {id:1,nome:"Ana & João",data:"2025-06-14",tipo:"Estacionário e Convites",faseConv:"Aprovação",faseEstat:"Criação",entregaConv:"2025-06-01",entregaEstat:"2025-06-08",orcamento:1800,p1Estado:"Pago",p2Estado:"Por pagar",p3Estado:"Por pagar",recebido:450,local:"Quinta de Cravel, Arouca",notas:"Aguarda aprovação do design",leadId:1},
+    {id:2,nome:"Marta & Rui",data:"2025-05-31",tipo:"Convites",faseConv:"Entrega",faseEstat:"",entregaConv:"2025-05-28",entregaEstat:"",orcamento:1200,p1Estado:"Pago",p2Estado:"Pago",p3Estado:"Pago",recebido:1200,local:"Solar de Lamas, Santa Maria da Feira",notas:"Produção concluída",leadId:2},
+    {id:3,nome:"Sofia & Pedro",data:"2025-07-20",tipo:"Estacionário e Convites",faseConv:"Criação",faseEstat:"Criação",entregaConv:"2025-06-25",entregaEstat:"2025-07-10",orcamento:2200,p1Estado:"Pago",p2Estado:"Por pagar",p3Estado:"Por pagar",recebido:550,local:"Herdade do Lago, Évora",notas:"Tema: jardim botânico",leadId:3},
+    {id:4,nome:"Inês & Tiago",data:"2025-08-09",tipo:"Estacionário",faseConv:"",faseEstat:"Criação",entregaConv:"",entregaEstat:"2025-07-30",orcamento:1600,sinal:300,recebido:300,notas:"Estilo rústico",leadId:4},
+    {id:5,nome:"Beatriz & André",data:"2025-09-12",tipo:"Convites",faseConv:"Criação",faseEstat:"",entregaConv:"2025-08-25",entregaEstat:"",orcamento:900,sinal:200,recebido:200,notas:"",leadId:5},
+  ],
+  leads:[
+    {id:1,nome:"Ana & João",canal:"Instagram/Facebook Ads",estado:"Em produção",data:"2025-01-10",orcamento:1800,notas:"Viram no Instagram"},
+    {id:2,nome:"Marta & Rui",canal:"Google Ads",estado:"Entregue",data:"2025-02-05",orcamento:1200,notas:"Pesquisa no Google"},
+    {id:3,nome:"Sofia & Pedro",canal:"Feira/Evento",estado:"Em produção",data:"2025-02-20",orcamento:2200,notas:"Feira de casamentos Lisboa"},
+    {id:4,nome:"Inês & Tiago",canal:"Referência",estado:"Em produção",data:"2025-03-01",orcamento:1600,notas:"Indicados pela Ana"},
+    {id:5,nome:"Beatriz & André",canal:"Instagram/Facebook Ads",estado:"Em produção",data:"2025-03-15",orcamento:900,notas:""},
+    {id:6,nome:"Leonor & Marco",canal:"Google Ads",estado:"Proposta enviada",data:"2025-04-10",orcamento:1500,notas:"Aguarda resposta"},
+    {id:7,nome:"Mariana & Diogo",canal:"Instagram/Facebook Ads",estado:"Contacto inicial",data:"2025-05-02",orcamento:0,notas:"DM no Instagram"},
+    {id:8,nome:"Carolina & Filipe",canal:"Feira/Evento",estado:"Perdido",data:"2025-03-20",orcamento:2000,notas:"Escolheram outra fornecedora"},
+    {id:9,nome:"Teresa & Miguel",canal:"Referência",estado:"Proposta enviada",data:"2025-05-10",orcamento:1800,notas:""},
+  ],
+  despesas:[
+    {id:1,descricao:"Gráfica — convites Ana & João",casamentoId:1,valor:280,data:"2025-05-15"},
+    {id:2,descricao:"Materiais papelaria Sofia & Pedro",casamentoId:3,valor:120,data:"2025-04-20"},
+    {id:3,descricao:"Gráfica — convites Marta & Rui",casamentoId:2,valor:190,data:"2025-04-10"},
+    {id:4,descricao:"Materiais Inês & Tiago",casamentoId:4,valor:95,data:"2025-05-01"},
+  ]
+};
+
+let db = { casamentos:[], leads:[], despesas:[] };
+function saveData(){ showToast(); } // no-op — saved via Supabase directly
+
+// ═══════════════════════════════════════════════════
+// UTILITÁRIOS
+// ═══════════════════════════════════════════════════
+function fmt(ds){
+  if(!ds) return "—";
+  const d=new Date(ds+"T12:00:00");
+  return `${d.getDate()} ${MESES[d.getMonth()].toUpperCase()} ${d.getFullYear()}`;
+}
+function fmtEur(v){ return v!=null?new Intl.NumberFormat("pt-PT",{style:"currency",currency:"EUR"}).format(v):"—"; }
+function subDays(ds,n){ if(!ds)return null; const d=new Date(ds+"T12:00:00"); d.setDate(d.getDate()-n); return d.toISOString().split("T")[0]; }
+function subMonths(ds,n){ if(!ds)return null; const d=new Date(ds+"T12:00:00"); d.setMonth(d.getMonth()-n); return d.toISOString().split("T")[0]; }
+function daysUntil(ds){ if(!ds)return null; const t=new Date(); t.setHours(0,0,0,0); return Math.ceil((new Date(ds+"T12:00:00")-t)/86400000); }
+function estadoProd(w){
+  const d=daysUntil(w.data); if(d===null)return null;
+  if(d<0) return {l:"Realizado",c:"b-gray"};
+  if(d<=21) return {l:"Produção!",c:"b-coral"};
+  if(d<=92) return {l:"Design!",c:"b-blue"};
+  return {l:"Aguardar",c:"b-gray"};
+}
+function tipoCls(t){ return t==="Convites"?"b-blue":t==="Estacionário"?"b-purple":"b-rosa"; }
+function faseCls(f){ const m={"Criação":"b-blue","Aprovação":"b-amber","Produção":"b-coral","Entrega":"b-green","Concluído":"b-gray"}; return m[f]||"b-gray"; }
+function canalCls(c){ const m={"Instagram/Facebook Ads":"b-rosa","Google Ads":"b-blue","Feira/Evento":"b-purple","Referência":"b-green","Outro":"b-gray"}; return m[c]||"b-gray"; }
+const SVG_EDIT = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+const SVG_DEL = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>`;
+function faseCell(w){
+  if(w.tipo==="Estacionário e Convites")
+    return `<div style="display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;align-items:center;gap:5px"><span style="font-size:10px;color:var(--azul);font-weight:500;min-width:58px">✉ Convites</span>${w.faseConv?`<span class="badge ${faseCls(w.faseConv)}" style="font-size:10px">${w.faseConv}</span>`:"—"}</div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="font-size:10px;color:var(--lilas);font-weight:500;min-width:58px">❧ Estac.</span>${w.faseEstat?`<span class="badge ${faseCls(w.faseEstat)}" style="font-size:10px">${w.faseEstat}</span>`:"—"}</div>
+    </div>`;
+  const f = w.tipo==="Convites"?w.faseConv:w.faseEstat;
+  return f?`<span class="badge ${faseCls(f)}">${f}</span>`:"—";
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER DASHBOARD
+// ═══════════════════════════════════════════════════
+function renderDashboard(){
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  document.getElementById("dash-date").textContent = `${hoje.getDate()} de ${["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"][hoje.getMonth()]} de ${hoje.getFullYear()}`;
+
+  const totalRec = db.casamentos.reduce((a,w)=>a+(w.recebido||0),0);
+  const totalOrc = db.casamentos.reduce((a,w)=>a+(w.orcamento||0),0);
+  const totalDesp = db.despesas.reduce((a,d)=>a+(d.valor||0),0);
+  const lucro = totalRec - totalDesp;
+  const leadsAtivos = db.leads.filter(l=>!["Entregue","Perdido"].includes(l.estado)).length;
+  document.getElementById("dash-metrics").innerHTML = `
+    <div class="metric"><div class="metric-label">Casamentos ativos</div><div class="metric-value">${db.casamentos.filter(w=>(daysUntil(w.data)||0)>=0).length}</div><div class="metric-sub">em produção</div></div>
+    <div class="metric"><div class="metric-label">Leads ativos</div><div class="metric-value mv-warn">${leadsAtivos}</div><div class="metric-sub">em pipeline</div></div>
+    <div class="metric"><div class="metric-label">Receita recebida</div><div class="metric-value mv-ok" style="font-size:24px">${fmtEur(totalRec)}</div><div class="metric-sub">de ${fmtEur(totalOrc)} orçamentado</div></div>
+    <div class="metric"><div class="metric-label">Lucro estimado</div><div class="metric-value mv-gold" style="font-size:24px">${fmtEur(lucro)}</div><div class="metric-sub">após despesas</div></div>
+  `;
+
+  // Alertas
+  const alerts=[];
+  db.casamentos.forEach(w=>{
+    const d=daysUntil(w.data); if(d===null||d<0)return;
+    if(d<=7) alerts.push({t:"al-danger",m:`<strong>${w.nome}</strong> — casamento em ${d} dias!`});
+    else if(d<=21) alerts.push({t:"al-danger",m:`<strong>${w.nome}</strong> — ${d} dias. Em produção?`});
+    else if(d<=92&&(w.faseConv==="Criação"||w.faseEstat==="Criação")) alerts.push({t:"al-warn",m:`<strong>${w.nome}</strong> — ${d} dias. Ainda em criação.`});
+  });
+  if(!alerts.length) alerts.push({t:"al-ok",m:"Sem alertas urgentes."});
+  const iconMap={"al-danger":`<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>`,"al-warn":`<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`,"al-ok":`<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>`};
+  document.getElementById("dash-alerts").innerHTML = `<div class="alerts">${alerts.map(a=>`<div class="alert ${a.t}">${iconMap[a.t]||""}<span>${a.m}</span></div>`).join("")}</div>`;
+
+  // Próximos
+  const prox = [...db.casamentos].filter(w=>(daysUntil(w.data)||0)>=0).sort((a,b)=>new Date(a.data)-new Date(b.data)).slice(0,5);
+  document.getElementById("dash-proximos").innerHTML = prox.map(w=>{
+    const d=daysUntil(w.data);
+    return `<tr><td class="td-name">${w.nome}</td><td class="td-muted">${fmt(w.data)}</td><td style="font-weight:500;color:${d<=21?"#C62828":d<=92?"#E65100":"var(--text)"}">${d} dias</td></tr>`;
+  }).join("");
+
+  // Leads recentes
+  const recentLeads = [...db.leads].sort((a,b)=>new Date(b.data)-new Date(a.data)).slice(0,5);
+  document.getElementById("dash-leads").innerHTML = recentLeads.map(l=>`
+    <tr><td class="td-name">${l.nome}</td><td><span class="badge ${ESTADO_CORES[l.estado]||"b-gray"}" style="font-size:10px">${l.estado}</span></td><td><span class="badge ${canalCls(l.canal)}" style="font-size:10px">${l.canal.split("/")[0]}</span></td></tr>`).join("");
+
+  // Financeiro resumo
+  const mesAtual = new Date().getMonth();
+  const anoAtual = new Date().getFullYear();
+  const recMes = db.casamentos.filter(w=>{
+    const d=new Date(w.data+"T12:00:00");
+    return d.getMonth()===mesAtual&&d.getFullYear()===anoAtual;
+  }).reduce((a,w)=>a+(w.recebido||0),0);
+  const despMes = db.despesas.filter(d=>{ const dt=new Date(d.data+"T12:00:00"); return dt.getMonth()===mesAtual&&dt.getFullYear()===anoAtual; }).reduce((a,d)=>a+(d.valor||0),0);
+  document.getElementById("dash-fin").innerHTML = `
+    <div class="card" style="padding:1rem">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:13px;color:var(--muted)">Receita do mês</span><span style="font-weight:500;color:var(--verde)">${fmtEur(recMes)}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:13px;color:var(--muted)">Despesas do mês</span><span style="font-weight:500;color:var(--coral)">${fmtEur(despMes)}</span></div>
+      <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:500">Lucro do mês</span><span style="font-weight:500;color:var(--dourado)">${fmtEur(recMes-despMes)}</span></div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER CLIENTES
+// ═══════════════════════════════════════════════════
+function renderClientes(){
+  // Kanban
+  const cols = ESTADOS_LEAD.filter(e=>e!=="Perdido");
+  document.getElementById("kanban-board").innerHTML = cols.map(estado=>{
+    const cards = db.leads.filter(l=>l.estado===estado);
+    return `<div class="kanban-col">
+      <div class="kanban-col-title">${estado}<span class="kanban-count">${cards.length}</span></div>
+      ${cards.map(l=>`<div class="kanban-card" onclick="openEditLead(${l.id})">
+        <div class="kanban-card-name">${l.nome}</div>
+        <div class="kanban-card-meta">${l.orcamento?fmtEur(l.orcamento):""}</div>
+        <div class="kanban-card-source">${l.canal.split("/")[0]}</div>
+      </div>`).join("")}
+    </div>`;
+  }).join("") + `<div class="kanban-col">
+    <div class="kanban-col-title">Perdidos<span class="kanban-count">${db.leads.filter(l=>l.estado==="Perdido").length}</span></div>
+    ${db.leads.filter(l=>l.estado==="Perdido").map(l=>`<div class="kanban-card" style="opacity:.5" onclick="openEditLead(${l.id})">
+      <div class="kanban-card-name">${l.nome}</div>
+    </div>`).join("")}
+  </div>`;
+
+  // Lista
+  document.getElementById("tbody-clientes").innerHTML = db.leads.map(l=>`
+    <tr>
+      <td class="td-name">${l.nome}</td>
+      <td class="td-muted">${l.data?fmt(l.data):"—"}</td>
+      <td><span class="badge ${tipoCls("Convites")}" style="font-size:10px">—</span></td>
+      <td><span class="badge ${canalCls(l.canal)}" style="font-size:10px">${l.canal.split("/")[0]}</span></td>
+      <td><span class="badge ${ESTADO_CORES[l.estado]||"b-gray"}" style="font-size:10px">${l.estado}</span></td>
+      <td class="td-muted">${l.orcamento?fmtEur(l.orcamento):"—"}</td>
+      <td><div class="row-actions">
+        <button class="icon-btn" onclick="openEditLead(${l.id})">${SVG_EDIT}</button>
+        <button class="icon-btn" onclick="deleteLead(${l.id})">${SVG_DEL}</button>
+      </div></td>
+    </tr>`).join("");
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER PRODUÇÃO
+// ═══════════════════════════════════════════════════
+function renderProducao(){
+  document.getElementById("tbody-prod").innerHTML = db.casamentos.map(w=>{
+    const d=daysUntil(w.data); const st=estadoProd(w);
+    const prox = d!==null&&d>=0&&d<=21?fmt(w.data):d!==null&&d>21&&d<=92?fmt(subDays(w.data,21)):d!==null?fmt(subMonths(w.data,3)):"—";
+    return `<tr>
+      <td class="td-name">${w.nome}${w.local?`<div class="td-muted" style="font-size:11px;margin-top:1px">📍 ${w.local}</div>`:""}</td>
+      <td>${fmt(w.data)}</td>
+      <td><span class="badge ${tipoCls(w.tipo)}" style="font-size:10px">${w.tipo}</span></td>
+      <td>${faseCell(w)}</td>
+      <td>${st?`<span class="badge ${st.c}">${st.l}</span>`:"—"}</td>
+      <td class="td-muted">${prox}</td>
+      <td><div class="row-actions">
+        <button class="icon-btn" onclick="openEditWedding(${w.id})">${SVG_EDIT}</button>
+        <button class="icon-btn" onclick="deleteWedding(${w.id})">${SVG_DEL}</button>
+      </div></td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("tbody-prazos").innerHTML = db.casamentos.map(w=>{
+    const d=daysUntil(w.data); const st=estadoProd(w);
+    const dLabel=d===null?"—":d<0?"Realizado":`${d} dias`;
+    const dColor=d!==null&&d>=0&&d<=21?"#C62828":d!==null&&d>21&&d<=92?"#BF360C":"var(--text)";
+    return `<tr>
+      <td class="td-name">${w.nome}</td>
+      <td>${fmt(w.data)}</td>
+      <td style="color:var(--azul);font-weight:500">${fmt(subMonths(w.data,3))}</td>
+      <td style="color:var(--amb);font-weight:500">${fmt(subDays(w.data,21))}</td>
+      <td>${faseCell(w)}</td>
+      <td style="font-weight:500;color:${dColor}">${dLabel}</td>
+    </tr>`;
+  }).join("");
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER CALENDÁRIO
+// ═══════════════════════════════════════════════════
+function renderCal(){
+  const DIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  document.getElementById("cal-month-label").textContent=`${MESES[calMonth]} ${calYear}`;
+  const events={};
+  const addEv=(ds,label,cls,nome)=>{
+    if(!ds)return;
+    const d=new Date(ds+"T12:00:00");
+    if(d.getFullYear()===calYear&&d.getMonth()===calMonth){
+      if(!events[ds])events[ds]=[];
+      events[ds].push({label,cls,nome});
+    }
+  };
+  db.casamentos.forEach(w=>{
+    addEv(subMonths(w.data,3),"🖊 Início design","ce-design",w.nome);
+    addEv(subDays(w.data,21),"🏭 Produção","ce-prod",w.nome);
+    addEv(w.data,"💍 Casamento","ce-wed",w.nome);
+    if(w.entregaConv) addEv(w.entregaConv,"📦 Conv.","ce-entrega",w.nome);
+    if(w.entregaEstat) addEv(w.entregaEstat,"📦 Estat.","ce-entrega",w.nome);
+  });
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+  const today=new Date(); today.setHours(0,0,0,0);
+  let html=DIAS.map(d=>`<div class="cal-day-hdr">${d}</div>`).join("");
+  for(let i=firstDay-1;i>=0;i--) html+=`<div class="cal-day other-month"><div class="cal-day-num" style="opacity:.3">${daysInPrev-i}</div></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const isToday=new Date(ds+"T12:00:00").getTime()===today.getTime();
+    const evs=events[ds]||[];
+    html+=`<div class="cal-day${isToday?" today":""}"><div class="cal-day-num">${d}</div>${evs.map(e=>`<div class="cal-event ${e.cls}" title="${e.nome}">${e.label} ${e.nome}</div>`).join("")}</div>`;
+  }
+  const total=firstDay+daysInMonth;
+  const rem=total%7===0?0:7-(total%7);
+  for(let d=1;d<=rem;d++) html+=`<div class="cal-day other-month"><div class="cal-day-num" style="opacity:.3">${d}</div></div>`;
+  document.getElementById("cal-grid").innerHTML=html;
+}
+function calPrev(){ calMonth===0?(calMonth=11,calYear--):calMonth--; renderCal(); }
+function calNext(){ calMonth===11?(calMonth=0,calYear++):calMonth++; renderCal(); }
+
+// ═══════════════════════════════════════════════════
+// RENDER FINANCEIRO
+// ═══════════════════════════════════════════════════
+function renderFinanceiro(){
+  const totalOrc=db.casamentos.reduce((a,w)=>a+(w.orcamento||0),0);
+  const totalRec=db.casamentos.reduce((a,w)=>a+(w.recebido||0),0);
+  const totalDesp=db.despesas.reduce((a,d)=>a+(d.valor||0),0);
+  const totalPend=totalOrc-totalRec;
+  const lucro=totalRec-totalDesp;
+  const margem=totalRec>0?Math.round((lucro/totalRec)*100):0;
+  document.getElementById("fin-summary").innerHTML=`
+    <div class="fin-card"><div class="fin-label">Total orçamentado</div><div class="fin-value" style="font-size:24px">${fmtEur(totalOrc)}</div></div>
+    <div class="fin-card"><div class="fin-label">Receita recebida</div><div class="fin-value income" style="font-size:24px">${fmtEur(totalRec)}</div><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,Math.round(totalRec/totalOrc*100))}%"></div></div></div>
+    <div class="fin-card"><div class="fin-label">Saldo pendente</div><div class="fin-value expense" style="font-size:24px">${fmtEur(totalPend)}</div></div>
+    <div class="fin-card"><div class="fin-label">Despesas produção</div><div class="fin-value expense" style="font-size:24px">${fmtEur(totalDesp)}</div></div>
+    <div class="fin-card"><div class="fin-label">Lucro estimado</div><div class="fin-value profit" style="font-size:24px">${fmtEur(lucro)}</div><div class="metric-sub">Margem: ${margem}%</div></div>
+  `;
+  document.getElementById("tbody-receitas").innerHTML=db.casamentos.map(w=>{
+    const orc=w.orcamento||0;
+    const saldo=orc-(w.recebido||0);
+    const pBadge=(estado,val)=>`<span class="badge ${estado==="Pago"?"b-green":"b-coral"}" style="font-size:10px">${estado==="Pago"?"✓ Pago":"Pendente"} ${fmtEur(val)}</span>`;
+    return `<tr>
+      <td class="td-name">${w.nome}${w.local?`<div class="td-muted" style="font-size:11px;margin-top:2px">📍 ${w.local}</div>`:""}</td>
+      <td style="font-weight:500">${fmtEur(orc)}</td>
+      <td>${pBadge(w.p1Estado||"Por pagar", orc*0.25)}</td>
+      <td>${pBadge(w.p2Estado||"Por pagar", orc*0.50)}</td>
+      <td>${pBadge(w.p3Estado||"Por pagar", orc*0.25)}</td>
+      <td style="font-weight:500;color:${saldo>0?"var(--coral)":"var(--verde)"}">${fmtEur(saldo)}</td>
+    </tr>`;
+  }).join("");
+  document.getElementById("tbody-despesas").innerHTML=db.despesas.map(d=>{
+    const w=db.casamentos.find(c=>c.id===d.casamentoId);
+    return `<tr>
+      <td class="td-name">${d.descricao}</td>
+      <td class="td-muted">${w?w.nome:"—"}</td>
+      <td style="font-weight:500;color:var(--coral)">${fmtEur(d.valor)}</td>
+      <td class="td-muted">${fmt(d.data)}</td>
+      <td><div class="row-actions"><button class="icon-btn" onclick="deleteDespesa(${d.id})">${SVG_DEL}</button></div></td>
+    </tr>`;
+  }).join("");
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER MARKETING
+// ═══════════════════════════════════════════════════
+function renderMarketing(){
+  const total=db.leads.length;
+  const convertidos=db.leads.filter(l=>["Negócio fechado","Em produção","Entregue"].includes(l.estado)).length;
+  const perdidos=db.leads.filter(l=>l.estado==="Perdido").length;
+  const pipeline=db.leads.filter(l=>["Contacto inicial","Proposta enviada"].includes(l.estado)).length;
+  const valPipeline=db.leads.filter(l=>l.estado==="Proposta enviada").reduce((a,l)=>a+(l.orcamento||0),0);
+  document.getElementById("mkt-metrics").innerHTML=`
+    <div class="metric"><div class="metric-label">Total leads</div><div class="metric-value">${total}</div></div>
+    <div class="metric"><div class="metric-label">Convertidos</div><div class="metric-value mv-ok">${convertidos}</div><div class="metric-sub">${total?Math.round(convertidos/total*100):0}% de conversão</div></div>
+    <div class="metric"><div class="metric-label">Em pipeline</div><div class="metric-value mv-warn">${pipeline}</div></div>
+    <div class="metric"><div class="metric-label">Valor em proposta</div><div class="metric-value mv-gold" style="font-size:22px">${fmtEur(valPipeline)}</div></div>
+    <div class="metric"><div class="metric-label">Perdidos</div><div class="metric-value mv-danger">${perdidos}</div></div>
+  `;
+  const byChannel={};
+  CANAIS.forEach(c=>{ byChannel[c]={total:0,conv:0}; });
+  db.leads.forEach(l=>{
+    if(!byChannel[l.canal])byChannel[l.canal]={total:0,conv:0};
+    byChannel[l.canal].total++;
+    if(["Negócio fechado","Em produção","Entregue"].includes(l.estado)) byChannel[l.canal].conv++;
+  });
+  const maxTotal=Math.max(...Object.values(byChannel).map(v=>v.total),1);
+  const CANAL_CORES={"Instagram/Facebook Ads":"var(--rosa)","Google Ads":"var(--azul)","Feira/Evento":"var(--lilas)","Referência":"var(--verde)","Outro":"var(--gray)"};
+  document.getElementById("mkt-by-channel").innerHTML=Object.entries(byChannel).filter(([,v])=>v.total>0).map(([c,v])=>`
+    <div class="channel-row">
+      <div style="font-size:12px;min-width:120px;color:var(--text)">${c.split("/")[0]}</div>
+      <div class="channel-bar-wrap"><div class="channel-bar" style="width:${Math.round(v.total/maxTotal*100)}%;background:${CANAL_CORES[c]||"var(--gray)"}"></div></div>
+      <div class="channel-val">${v.total}</div>
+    </div>`).join("");
+  document.getElementById("mkt-conversion").innerHTML=Object.entries(byChannel).filter(([,v])=>v.total>0).map(([c,v])=>{
+    const pct=v.total?Math.round(v.conv/v.total*100):0;
+    return `<div class="channel-row">
+      <div style="font-size:12px;min-width:120px;color:var(--text)">${c.split("/")[0]}</div>
+      <div class="channel-bar-wrap"><div class="channel-bar" style="width:${pct}%;background:${pct>=50?"var(--verde)":pct>=25?"var(--amb)":"var(--coral)"}"></div></div>
+      <div class="channel-val">${pct}%</div>
+    </div>`;
+  }).join("");
+  document.getElementById("tbody-mkt-leads").innerHTML=db.leads.map(l=>`
+    <tr>
+      <td class="td-name">${l.nome}</td>
+      <td><span class="badge ${canalCls(l.canal)}" style="font-size:10px">${l.canal.split("/")[0]}</span></td>
+      <td class="td-muted">${fmt(l.data)}</td>
+      <td><span class="badge ${ESTADO_CORES[l.estado]||"b-gray"}" style="font-size:10px">${l.estado}</span></td>
+      <td class="td-muted">${l.orcamento?fmtEur(l.orcamento):"—"}</td>
+      <td class="td-muted" style="font-style:italic">${l.notas||""}</td>
+    </tr>`).join("");
+}
+
+// ═══════════════════════════════════════════════════
+// MODAIS
+// ═══════════════════════════════════════════════════
+function openModal(html){ document.getElementById("modal-content").innerHTML=html; document.getElementById("modal-bg").style.display="flex"; }
+function calcPrestacoes(){
+  const orc = parseFloat(document.getElementById("f-orc")?.value)||0;
+  const p1=document.getElementById("p1-val"); if(p1) p1.textContent=orc?fmtEur(orc*0.25):"—";
+  const p2=document.getElementById("p2-val"); if(p2) p2.textContent=orc?fmtEur(orc*0.50):"—";
+  const p3=document.getElementById("p3-val"); if(p3) p3.textContent=orc?fmtEur(orc*0.25):"—";
+}
+function closeModal(){ document.getElementById("modal-bg").style.display="none"; }
+
+function fOpts(vals,sel){ return vals.map(v=>`<option ${v===sel?"selected":""}>${v}</option>`).join(""); }
+function faseFields(tipo,w){
+  let h="";
+  if(tipo==="Convites"||tipo==="Estacionário e Convites")
+    h+=`<div class="block-blue"><div class="block-title">✉ Convites</div>
+      <div class="field-row">
+        <div class="field"><label>Fase atual</label><select id="f-faseConv">${fOpts(FASES,w&&w.faseConv||"Criação")}</select></div>
+        <div class="field"><label>Data entrega</label><input type="date" id="f-entregaConv" value="${w&&w.entregaConv||""}"></div>
+      </div></div>`;
+  if(tipo==="Estacionário"||tipo==="Estacionário e Convites")
+    h+=`<div class="block-purple"><div class="block-title">❧ Estacionário</div>
+      <div class="field-row">
+        <div class="field"><label>Fase atual</label><select id="f-faseEstat">${fOpts(FASES,w&&w.faseEstat||"Criação")}</select></div>
+        <div class="field"><label>Data entrega</label><input type="date" id="f-entregaEstat" value="${w&&w.entregaEstat||""}"></div>
+      </div></div>`;
+  return h;
+}
+
+function openNewWedding(){ editingId=null; openModal(weddingModal(null)); }
+function openEditWedding(id){ editingId=id; openModal(weddingModal(db.casamentos.find(w=>w.id===id))); }
+function weddingModal(w){
+  const tipo=w?w.tipo:"Convites";
+  return `<div class="modal-title">${w?"Editar casamento":"Novo casamento"}</div>
+    <div class="field"><label>Nome dos noivos</label><input type="text" id="f-nome" value="${w?w.nome:""}"></div>
+    <div class="field-row">
+      <div class="field"><label>Data do casamento</label><input type="date" id="f-data" value="${w?w.data:""}"></div>
+      <div class="field"><label>Local do casamento</label><input type="text" id="f-local" value="${w?w.local||"":""}" placeholder="Ex: Quinta da Aveleda, Penafiel"></div>
+    </div>
+    <div class="field"><label>Tipo de produto</label><select id="f-tipo" onchange="document.getElementById('f-fases').innerHTML=faseFields(this.value,null)">${fOpts(TIPOS,tipo)}</select></div>
+    <div id="f-fases">${faseFields(tipo,w)}</div>
+    <div class="field"><label>Orçamento total (€)</label><input type="number" id="f-orc" value="${w?w.orcamento:""}" placeholder="0" oninput="calcPrestacoes()"></div>
+    <div style="background:var(--rosa-bg);border:1px solid var(--rosa-cl);border-radius:8px;padding:12px;margin-bottom:13px">
+      <div style="font-size:11px;font-weight:500;color:var(--rosa);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Plano de pagamentos</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px" id="prestacoes-preview">
+        <div style="text-align:center">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">25% — Adjudicação</div>
+          <div style="font-size:15px;font-weight:500;color:var(--text)" id="p1-val">${w&&w.orcamento?fmtEur(w.orcamento*0.25):"—"}</div>
+          <div style="margin-top:5px"><select id="f-p1-estado" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:white">${["Por pagar","Pago"].map(s=>`<option ${w&&w.p1Estado===s?"selected":""}>${s}</option>`).join("")}</select></div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">50% — Após criativo</div>
+          <div style="font-size:15px;font-weight:500;color:var(--text)" id="p2-val">${w&&w.orcamento?fmtEur(w.orcamento*0.50):"—"}</div>
+          <div style="margin-top:5px"><select id="f-p2-estado" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:white">${["Por pagar","Pago"].map(s=>`<option ${w&&w.p2Estado===s?"selected":""}>${s}</option>`).join("")}</select></div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">25% — Entrega</div>
+          <div style="font-size:15px;font-weight:500;color:var(--text)" id="p3-val">${w&&w.orcamento?fmtEur(w.orcamento*0.25):"—"}</div>
+          <div style="margin-top:5px"><select id="f-p3-estado" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:white">${["Por pagar","Pago"].map(s=>`<option ${w&&w.p3Estado===s?"selected":""}>${s}</option>`).join("")}</select></div>
+        </div>
+      </div>
+    </div>
+    <div class="field"><label>Notas</label><textarea id="f-notas">${w?w.notas:""}</textarea></div>
+    <div class="modal-actions">
+      ${w?`<button class="btn btn-danger" onclick="deleteWedding(${w.id});closeModal()">Eliminar</button>`:""}
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveWedding()">Guardar</button>
+    </div>`;
+}
+async function saveWedding(){
+  const nome=document.getElementById("f-nome").value.trim();
+  const data=document.getElementById("f-data").value;
+  const tipo=document.getElementById("f-tipo").value;
+  if(!nome||!data)return;
+  const orc = parseFloat(document.getElementById("f-orc").value)||0;
+  const p1 = document.getElementById("f-p1-estado").value;
+  const p2 = document.getElementById("f-p2-estado").value;
+  const p3 = document.getElementById("f-p3-estado").value;
+  const recebido = (p1==="Pago"?orc*0.25:0)+(p2==="Pago"?orc*0.50:0)+(p3==="Pago"?orc*0.25:0);
+  const obj={
+    id:editingId||Date.now(),nome,data,tipo,
+    local:document.getElementById("f-local").value,
+    faseConv:document.getElementById("f-faseConv")?.value||"",
+    faseEstat:document.getElementById("f-faseEstat")?.value||"",
+    entregaConv:document.getElementById("f-entregaConv")?.value||"",
+    entregaEstat:document.getElementById("f-entregaEstat")?.value||"",
+    orcamento:orc,
+    p1Estado:p1, p2Estado:p2, p3Estado:p3,
+    recebido,
+    notas:document.getElementById("f-notas").value,
+    leadId:editingId?db.casamentos.find(w=>w.id===editingId)?.leadId:null
+  };
+  if(editingId){ const i=db.casamentos.findIndex(w=>w.id===editingId); if(i>=0)db.casamentos[i]=obj; }
+  else db.casamentos.push(obj);
+  await sbSaveWedding(obj);
+  showToast(); closeModal(); renderAll();
+}
+async function deleteWedding(id){ if(!confirm("Eliminar casamento?"))return; db.casamentos=db.casamentos.filter(w=>w.id!==id); await sbDeleteWedding(id); renderAll(); showToast(); }
+
+function openNewLead(){ editingId=null; openModal(leadModal(null)); }
+function openEditLead(id){ editingId=id; openModal(leadModal(db.leads.find(l=>l.id===id))); }
+function leadModal(l){
+  return `<div class="modal-title">${l?"Editar lead":"Novo lead"}</div>
+    <div class="field"><label>Nome</label><input type="text" id="f-nome" value="${l?l.nome:""}"></div>
+    <div class="field-row">
+      <div class="field"><label>Canal de origem</label><select id="f-canal">${fOpts(CANAIS,l?l.canal:"Instagram/Facebook Ads")}</select></div>
+      <div class="field"><label>Estado</label><select id="f-estado">${fOpts(ESTADOS_LEAD,l?l.estado:"Contacto inicial")}</select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Data de contacto</label><input type="date" id="f-data" value="${l?l.data:""}"></div>
+      <div class="field"><label>Orçamento estimado (€)</label><input type="number" id="f-orc" value="${l&&l.orcamento||""}" placeholder="0"></div>
+    </div>
+    <div class="field"><label>Notas</label><textarea id="f-notas">${l?l.notas:""}</textarea></div>
+    <div class="modal-actions">
+      ${l?`<button class="btn btn-danger" onclick="deleteLead(${l.id});closeModal()">Eliminar</button>`:""}
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveLead()">Guardar</button>
+    </div>`;
+}
+async function saveLead(){
+  const nome=document.getElementById("f-nome").value.trim();
+  if(!nome)return;
+  const obj={
+    id:editingId||Date.now(),nome,
+    canal:document.getElementById("f-canal").value,
+    estado:document.getElementById("f-estado").value,
+    data:document.getElementById("f-data").value,
+    orcamento:parseFloat(document.getElementById("f-orc").value)||0,
+    notas:document.getElementById("f-notas").value
+  };
+  if(editingId){ const i=db.leads.findIndex(l=>l.id===editingId); if(i>=0)db.leads[i]=obj; }
+  else db.leads.push(obj);
+  await sbSaveLead(obj);
+  showToast(); closeModal(); renderAll();
+}
+async function deleteLead(id){ if(!confirm("Eliminar lead?"))return; db.leads=db.leads.filter(l=>l.id!==id); await sbDeleteLead(id); renderAll(); showToast(); }
+
+function openNewDespesa(){ editingId=null; openModal(despesaModal(null)); }
+function despesaModal(d){
+  const wOpts=db.casamentos.map(w=>`<option value="${w.id}" ${d&&d.casamentoId===w.id?"selected":""}>${w.nome}</option>`).join("");
+  return `<div class="modal-title">Registar despesa</div>
+    <div class="field"><label>Descrição</label><input type="text" id="f-desc" value="${d?d.descricao:""}" placeholder="Ex: Gráfica — convites Ana & João"></div>
+    <div class="field-row">
+      <div class="field"><label>Casamento</label><select id="f-casamento"><option value="">— geral —</option>${wOpts}</select></div>
+      <div class="field"><label>Valor (€)</label><input type="number" id="f-val" value="${d?d.valor:""}" placeholder="0"></div>
+    </div>
+    <div class="field"><label>Data</label><input type="date" id="f-data" value="${d?d.data:""}"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveDespesa()">Guardar</button>
+    </div>`;
+}
+async function saveDespesa(){
+  const desc=document.getElementById("f-desc").value.trim();
+  const val=parseFloat(document.getElementById("f-val").value);
+  if(!desc||!val)return;
+  const obj={
+    id:Date.now(),descricao:desc,
+    casamentoId:parseInt(document.getElementById("f-casamento").value)||null,
+    valor:val,
+    data:document.getElementById("f-data").value
+  };
+  db.despesas.push(obj);
+  await sbSaveDespesa(obj);
+  showToast(); closeModal(); renderAll();
+}
+async function deleteDespesa(id){ if(!confirm("Eliminar despesa?"))return; db.despesas=db.despesas.filter(d=>d.id!==id); await sbDeleteDespesa(id); renderAll(); showToast(); }
+
+// ═══════════════════════════════════════════════════
+// NAVEGAÇÃO & TABS
+// ═══════════════════════════════════════════════════
+const PAGES=["dashboard","clientes","producao","calendario","financeiro","marketing"];
+function setPage(p){
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));
+  document.getElementById("page-"+p).classList.add("active");
+  document.querySelectorAll(".nav-item")[PAGES.indexOf(p)].classList.add("active");
+  if(p==="calendario") renderCal();
+  if(p==="marketing") renderMarketing();
+}
+function setProdTab(t,btn){
+  activeProdTab=t;
+  document.getElementById("prod-ativos").style.display=t==="ativos"?"block":"none";
+  document.getElementById("prod-prazos").style.display=t==="prazos"?"block":"none";
+  document.querySelectorAll("#page-producao .tab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+}
+function setCliTab(t,btn){
+  activeCliTab=t;
+  document.getElementById("cli-pipeline").style.display=t==="pipeline"?"block":"none";
+  document.getElementById("cli-lista").style.display=t==="lista"?"block":"none";
+  document.querySelectorAll("#page-clientes .tab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+// ═══════════════════════════════════════════════════
+// BACKUP
+// ═══════════════════════════════════════════════════
+function exportData(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`rita_backup_${new Date().toISOString().split("T")[0]}.json`;
+  a.click();
+}
+function importData(e){
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const imp=JSON.parse(ev.target.result);
+      if(!imp.casamentos||!imp.leads)throw new Error();
+      if(!confirm(`Importar backup? Os dados atuais serão substituídos.`))return;
+      db=imp; saveData(); renderAll();
+    }catch(err){ alert("Ficheiro inválido."); }
+  };
+  reader.readAsText(file);
+  e.target.value="";
+}
+
+// ═══════════════════════════════════════════════════
+// TOAST & RENDER ALL
+// ═══════════════════════════════════════════════════
+function showToast(){ const t=document.getElementById("toast"); t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2000); }
+function renderAll(){ renderDashboard(); renderClientes(); renderProducao(); renderFinanceiro(); }
+
+// Iniciar
+initAuth();
+</script>
+</body>
+</html>
