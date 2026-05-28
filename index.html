@@ -445,7 +445,7 @@ async function initAuth() {
 }
 
 async function startApp() {
-  const { data:prof } = await sb.from('s').select('name,role').eq('id', currentUser.id).single();
+  const { data:prof } = await sb.from('profiles').select('name,role').eq('id', currentUser.id).single();
   if (prof) {
     currentRole = prof.role;
     document.getElementById('perfil-nome').textContent = prof.name;
