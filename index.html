@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier Rita Robalinho</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -414,6 +414,8 @@ tr:hover .row-actions{opacity:1}
 // ═══════════════════════════════════════════════════
 const SUPABASE_URL  = 'https://syhtfoaeuphzjyofnywc.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_C6QF66eE7WICPHjB2P1BjQ_a4PDToNX';
+// IMPORTANTE: No Supabase → Authentication → URL Configuration
+// define o Site URL como: https://ritarobalinho.github.io/[nome-do-repositorio]
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -429,8 +431,9 @@ async function doLogin() {
   err.style.display='none'; btn.disabled=true; btn.textContent='A entrar...';
   const { error } = await sb.auth.signInWithPassword({ email, password: pass });
   if (error) {
-    err.textContent = 'Email ou password incorretos.';
+    err.textContent = error.message || 'Email ou password incorretos.';
     err.style.display='block'; btn.disabled=false; btn.textContent='Entrar';
+    console.error('Login error:', error);
   }
 }
 async function doLogout() { await sb.auth.signOut(); location.reload(); }
@@ -450,11 +453,11 @@ async function startApp() {
     currentRole = prof.role;
     document.getElementById('perfil-nome').textContent = prof.name;
   }
-  applyRoleUI();
   await loadAll();
   renderAll();
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-app').style.display='grid';
+  applyRoleUI();
 }
 
 function applyRoleUI() {
