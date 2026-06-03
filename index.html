@@ -413,7 +413,7 @@ tr:hover .row-actions{opacity:1}
 // CONFIG SUPABASE — substitui pelos teus valores
 // ═══════════════════════════════════════════════════
 const SUPABASE_URL  = 'https://syhtfoaeuphzjyofnywc.supabase.co';
-const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5aHRmb2FldXBoemp5b2ZueXdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5Mzc1NzMsImV4cCI6MjA5NTUxMzU3M30.DVIFXxHG2Rt0aLlNhw-Pk-VjdTO1dl5TgjfB7v-1nyM';
+const SUPABASE_KEY  = 'sb_publishable_C6QF66eE7WICPHjB2P1BjQ_a4PDToNX';
 // IMPORTANTE: No Supabase → Authentication → URL Configuration
 // define o Site URL como: https://ritarobalinho.github.io/[nome-do-repositorio]
 
@@ -878,66 +878,49 @@ function calcPrestacoes(){
   const p2=document.getElementById("p2-val"); if(p2) p2.textContent=orc?fmtEur(orc*0.50):"—";
   const p3=document.getElementById("p3-val"); if(p3) p3.textContent=orc?fmtEur(orc*0.25):"—";
 }
-function convertLead(leadId) {
+async function convertLead(leadId) {
   const lead = db.leads.find(l => l.id === leadId);
-  if (!lead) return;
+  if (!lead) { alert('Lead não encontrado'); return; }
+  
   editingId = null;
-  // Pré-preencher com dados do lead
-  const obj = {
-    id: null,
-    nome: lead.nome,
-    data: lead.data || '',
-    local: '',
-    tipo: 'Convites',
-    faseConv: 'Criação',
-    faseEstat: '',
-    entregaConv: '',
-    entregaEstat: '',
-    orcamento: lead.orcamento || 0,
-    p1Estado: 'Por pagar',
-    p2Estado: 'Por pagar',
-    p3Estado: 'Por pagar',
-    recebido: 0,
-    notas: `Lead: ${lead.canal} — ${lead.notas ? lead.notas : ''}`,
-    leadId: lead.id
-  };
-  // Abrir modal com dados pré-preenchidos
-  const tipo = obj.tipo;
-  document.getElementById("modal-content").innerHTML = `<div class="modal-title">Iniciar Produção — ${obj.nome}</div>
-    <div class="field"><label>Nome dos noivos</label><input type="text" id="f-nome" value="${obj.nome}"></div>
+  const tipo = 'Convites';
+  const html = `<div class="modal-title">Iniciar Produção — ${lead.nome}</div>
+    <div class="field"><label>Nome dos noivos</label><input type="text" id="f-nome" value="${lead.nome}"></div>
     <div class="field-row">
-      <div class="field"><label>Data do casamento</label><input type="date" id="f-data" value="${obj.data}"></div>
-      <div class="field"><label>Local do casamento</label><input type="text" id="f-local" value="${obj.local}" placeholder="Ex: Quinta da Aveleda, Penafiel"></div>
+      <div class="field"><label>Data do casamento</label><input type="date" id="f-data" value="${lead.data||''}"></div>
+      <div class="field"><label>Local do casamento</label><input type="text" id="f-local" value="" placeholder="Ex: Quinta da Aveleda, Penafiel"></div>
     </div>
-    <div class="field"><label>Tipo de produto</label><select id="f-tipo" onchange="document.getElementById('f-fases').innerHTML=faseFields(this.value,null)">${fOpts(TIPOS, tipo)}</select></div>
-    <div id="f-fases">${faseFields(tipo, null)}</div>
-    <div class="field"><label>Orçamento total (€)</label><input type="number" id="f-orc" value="${obj.orcamento}" placeholder="0" oninput="calcPrestacoes()"></div>
+    <div class="field"><label>Tipo de produto</label><select id="f-tipo" onchange="document.getElementById('f-fases').innerHTML=faseFields(this.value,null)">${TIPOS.map(t=>`<option value="${t}" ${t===tipo?'selected':''}>${t}</option>`).join('')}</select></div>
+    <div id="f-fases">${faseFields(tipo,null)}</div>
+    <div class="field"><label>Orçamento total (€)</label><input type="number" id="f-orc" value="${lead.orcamento||0}" placeholder="0" oninput="calcPrestacoes()"></div>
     <div style="background:var(--rosa-bg);border:1px solid var(--rosa-cl);border-radius:8px;padding:12px;margin-bottom:13px">
       <div style="font-size:11px;font-weight:500;color:var(--rosa);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Plano de pagamentos</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px" id="prestacoes-preview">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
         <div style="text-align:center">
           <div style="font-size:10px;color:var(--muted);margin-bottom:3px">25% — Adjudicação</div>
-          <div style="font-size:15px;font-weight:500;color:var(--text)" id="p1-val">${fmtEur(obj.orcamento*0.25)}</div>
+          <div style="font-size:15px;font-weight:500;color:var(--text)" id="p1-val">${fmtEur((lead.orcamento||0)*0.25)}</div>
           <div style="margin-top:5px"><select id="f-p1-estado" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:white"><option>Por pagar</option><option>Pago</option></select></div>
         </div>
         <div style="text-align:center">
           <div style="font-size:10px;color:var(--muted);margin-bottom:3px">50% — Após criativo</div>
-          <div style="font-size:15px;font-weight:500;color:var(--text)" id="p2-val">${fmtEur(obj.orcamento*0.50)}</div>
+          <div style="font-size:15px;font-weight:500;color:var(--text)" id="p2-val">${fmtEur((lead.orcamento||0)*0.50)}</div>
           <div style="margin-top:5px"><select id="f-p2-estado" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:white"><option>Por pagar</option><option>Pago</option></select></div>
         </div>
         <div style="text-align:center">
           <div style="font-size:10px;color:var(--muted);margin-bottom:3px">25% — Entrega</div>
-          <div style="font-size:15px;font-weight:500;color:var(--text)" id="p3-val">${fmtEur(obj.orcamento*0.25)}</div>
+          <div style="font-size:15px;font-weight:500;color:var(--text)" id="p3-val">${fmtEur((lead.orcamento||0)*0.25)}</div>
           <div style="margin-top:5px"><select id="f-p3-estado" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:white"><option>Por pagar</option><option>Pago</option></select></div>
         </div>
       </div>
     </div>
-    <div class="field"><label>Notas</label><textarea id="f-notas">${obj.notas}</textarea></div>
+    <div class="field"><label>Notas</label><textarea id="f-notas">Origem: ${lead.canal}</textarea></div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveWedding()">Criar casamento</button>
+      <button class="btn btn-primary" onclick="saveWedding()">✓ Criar casamento</button>
     </div>`;
-  document.getElementById("modal-bg").style.display="flex";
+  document.getElementById("modal-content").innerHTML = html;
+  document.getElementById("modal-bg").style.display = "flex";
+  setTimeout(()=>calcPrestacoes(), 100);
 }
 function closeModal(){ document.getElementById("modal-bg").style.display="none"; }
 
@@ -1032,7 +1015,7 @@ async function deleteWedding(id){ if(!confirm("Eliminar casamento?"))return; db.
 function openNewLead(){ editingId=null; openModal(leadModal(null)); }
 function openEditLead(id){ editingId=id; openModal(leadModal(db.leads.find(l=>l.id===id))); }
 function leadModal(l){
-  return `<div class="modal-title">${l?"Editar lead":"Novo lead"}</div>
+  return `<div class="modal-title">${l?"Editar lead":"Novo lead"}${l&&l.estado==="Negócio fechado"?` <span style="font-size:12px;color:var(--rosa)">✓ Pronto para produção</span>`:""}</div>
     <div class="field"><label>Nome</label><input type="text" id="f-nome" value="${l?l.nome:""}"></div>
     <div class="field-row">
       <div class="field"><label>Canal de origem</label><select id="f-canal">${fOpts(CANAIS,l?l.canal:"Instagram/Facebook Ads")}</select></div>
@@ -1044,6 +1027,7 @@ function leadModal(l){
     </div>
     <div class="field"><label>Notas</label><textarea id="f-notas">${l?l.notas:""}</textarea></div>
     <div class="modal-actions">
+      ${l&&l.estado==="Negócio fechado"?`<button class="btn btn-primary" style="background:var(--verde)" onclick="convertLead(${l.id});closeModal()">➜ Iniciar Produção</button>`:""}
       ${l?`<button class="btn btn-danger" onclick="deleteLead(${l.id});closeModal()">Eliminar</button>`:""}
       <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="saveLead()">Guardar</button>
